@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Danh sách sách thư viện - Premium Glassmorphism</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     /* ===== RESET ===== */
     * {
@@ -364,6 +365,23 @@
     }
     .site-footer span { color: #0f172a; font-weight: 600; }
 
+    .sync-status {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #64748b;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
+      display: none;
+      z-index: 100;
+      animation: fadeUp 0.3s ease-out;
+    }
+
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       .header-glass {
@@ -401,8 +419,14 @@
   </div>
 </div>
 
+<!-- Thêm div trạng thái đồng bộ -->
+<div id="syncStatus" class="sync-status">
+  <i class="fas fa-sync fa-spin mr-2"></i> Đang tải sách mới nhất...
+</div>
+
 <div id="bookGrid" class="book-grid">
-  <p style="text-align:center; width: 100%; color: #64748b;">Đang kết nối hệ thống thư viện...</p>
+  <!-- Sửa lại style cho mượt -->
+  <p id="loadingMsg" style="text-align:center; width: 100%; color: #64748b; grid-column: 1 / -1; padding: 40px 0;"><i class="fas fa-spinner fa-spin"></i> Đang kết nối hệ thống thư viện...</p>
 </div>
 
 <!-- ===== POPUP CHI TIẾT SÁCH ===== -->
@@ -448,11 +472,31 @@
   const bookGrid = document.getElementById("bookGrid");
   const modal = document.getElementById("bookModal");
   const closeBtn = document.getElementById("closeBtn");
+  const loadingMsg = document.getElementById("loadingMsg");
+  const syncStatus = document.getElementById("syncStatus");
 
   let allBooks = [];
 
-  // Gọi API lấy dữ liệu kho sách đầy đủ
+  // TÍNH NĂNG MỚI: CACHE ĐỂ LOAD NGAY LẬP TỨC
   async function loadBooks() {
+    
+    // 1. Kiểm tra và tải ngay dữ liệu từ bộ nhớ trình duyệt (Nếu có)
+    const cachedData = localStorage.getItem('library_catalog_cache');
+    if (cachedData) {
+      try {
+        allBooks = JSON.parse(cachedData);
+        if (allBooks.length > 0) {
+            renderGrid(allBooks);
+            if (loadingMsg) loadingMsg.style.display = 'none';
+            // Hiện thanh thông báo nhỏ báo hiệu đang update ngầm phía sau
+            syncStatus.style.display = 'block';
+        }
+      } catch(e) {
+        console.error("Lỗi đọc cache", e);
+      }
+    }
+
+    // 2. Chạy ngầm gọi API để lấy số liệu mới nhất
     try {
       const response = await fetch(API_WRITE_URL, {
           method: 'POST',
@@ -463,7 +507,7 @@
       const result = await response.json();
       
       if(result.status === "success") {
-         allBooks = result.data.map(row => {
+         let freshBooks = result.data.map(row => {
             return {
                code: row.code,
                title: row.name,
@@ -471,28 +515,43 @@
                total: parseInt(row.total) || 0,
                borrowed: parseInt(row.borrowed) || 0,
                remain: parseInt(row.conLai) || 0,
-               // Ưu tiên link ảnh từ Sheet, nếu không có thì dùng Fallback
                imageUrl: row.imageUrl ? row.imageUrl : (bookImagesFallback[row.name] || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop")
             };
          });
          
-         // Lọc bỏ sách trống
-         allBooks = allBooks.filter(b => b.title.trim() !== "");
-         renderGrid(allBooks);
+         freshBooks = freshBooks.filter(b => b.title.trim() !== "");
+         
+         // Kiểm tra xem dữ liệu có thay đổi so với cache không để render lại
+         if (JSON.stringify(freshBooks) !== JSON.stringify(allBooks)) {
+             allBooks = freshBooks;
+             // Lưu dữ liệu mới đè lên cache
+             localStorage.setItem('library_catalog_cache', JSON.stringify(allBooks));
+             // Cập nhật lại giao diện với sách mới / số lượng mới
+             renderGrid(allBooks);
+         }
+         
+         if (loadingMsg) loadingMsg.style.display = 'none';
+         syncStatus.style.display = 'none';
+
       } else {
-         bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red;">Lỗi tải dữ liệu: ${result.message}</p>`;
+         if(!cachedData) bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red; grid-column: 1 / -1;">Lỗi tải dữ liệu: ${result.message}</p>`;
+         syncStatus.style.display = 'none';
       }
     } catch (error) {
-      bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red;">Lỗi kết nối. Vui lòng kiểm tra lại liên kết API.</p>`;
+      if(!cachedData) {
+          bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red; grid-column: 1 / -1;">Lỗi kết nối. Vui lòng tải lại trang.</p>`;
+      }
+      syncStatus.style.display = 'none';
       console.error(error);
     }
   }
 
   function renderGrid(books) {
+    // Chỉ clear HTML nếu không đang giữ focus ở ô tìm kiếm (tránh giật lag)
     bookGrid.innerHTML = "";
     
     if(books.length === 0){
-       bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: #64748b;">Không tìm thấy cuốn sách nào.</p>`;
+       bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: #64748b; grid-column: 1 / -1; padding: 40px 0;">Không tìm thấy cuốn sách nào.</p>`;
        return;
     }
 
@@ -502,13 +561,15 @@
 
       const card = document.createElement("div");
       card.className = "book-card";
-      card.style.animationDelay = `${index * 0.05}s`;
+      
+      // Bỏ delay animation nếu đã load từ cache để có cảm giác "instant" (chớp mắt)
+      card.style.animationDelay = `0s`;
       
       card.onclick = () => openModal(book);
 
       card.innerHTML = `
         <div class="card-img-wrapper">
-          <img src="${book.imageUrl}" alt="${book.title}" onerror="this.src='https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop'">
+          <img src="${book.imageUrl}" alt="${book.title}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop'">
           <span class="category-badge">${book.category}</span>
         </div>
         <div class="card-info">
