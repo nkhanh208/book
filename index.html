@@ -393,7 +393,7 @@
   <h2>📚 Thư Viện Sách</h2>
   <div class="search-box">
     <div class="container-input">
-      <input type="text" placeholder="Tìm tên sách..." name="text" class="input" id="searchInput">
+      <input type="text" placeholder="Tìm tên sách hoặc mã..." name="text" class="input" id="searchInput">
       <svg fill="#000000" viewBox="0 0 1920 1920" xmlns="http://www.w3.org/2000/svg">
         <path d="M790.588 1468.235c-373.722 0-677.647-303.924-677.647-677.647 0-373.722 303.925-677.647 677.647-677.647 373.723 0 677.647 303.925 677.647 677.647 0 373.723-303.924 677.647-677.647 677.647Zm596.781-160.715c120.396-138.692 193.807-319.285 193.807-516.932C1581.176 354.748 1226.428 0 790.588 0S0 354.748 0 790.588s354.748 790.588 790.588 790.588c197.647 0 378.24-73.411 516.932-193.807l516.028 516.142 79.963-79.963-516.142-516.028Z" fill-rule="evenodd"></path>
       </svg>
@@ -401,7 +401,9 @@
   </div>
 </div>
 
-<div id="bookGrid" class="book-grid"></div>
+<div id="bookGrid" class="book-grid">
+  <p style="text-align:center; width: 100%; color: #64748b;">Đang kết nối hệ thống thư viện...</p>
+</div>
 
 <!-- ===== POPUP CHI TIẾT SÁCH ===== -->
 <div id="bookModal" class="popup">
@@ -409,7 +411,7 @@
     <div class="close-btn" id="closeBtn">✕</div>
 
     <div class="modal-body">
-      <img id="modalImage" src="" alt="Ảnh sách">
+      <img id="modalImage" src="" alt="Ảnh bìa sách" onerror="this.src='https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop'">
 
       <div class="modal-info">
         <h3 id="modalTitle"></h3>
@@ -428,7 +430,10 @@
 </footer>
 
 <script>
-  const bookImages = {
+  // Link API đồng bộ với toàn hệ thống của bạn
+  const API_WRITE_URL = "https://script.google.com/macros/s/AKfycbweY2qWa5jH_L-w2DD7Csfn45rxFkoS_GZ6JrG3-n005Nlfhl1tbQstq6CxVKgHv6qiag/exec";
+
+  const bookImagesFallback = {
     "Đắc Nhân Tâm (Dale Carnegie)": "https://ebookvie.com/wp-content/uploads/2024/02/Dac-Nhan-Tam-Dale-Carnegie-ebookvie.png",
     "Nhà Giả Kim (Paulo Coelho)": "https://th.bing.com/th/id/OIP._yzetDs3gher9vBV-Ax_iAHaL0?w=115&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1",
     "Tuổi trẻ đáng giá bao nhiêu?": "https://i.pinimg.com/736x/37/8c/df/378cdf8dbf034e3e0e7b51edad4a7d3f.jpg",
@@ -439,62 +444,78 @@
     "Dế Mèn phiêu lưu ký": "https://th.bing.com/th/id/OIP.yUnYiZCTzCIjVgo11MiTwgHaHa?w=185&h=185&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1"
   };
 
-  const SHEET_ID = "1ri9ZDmFpX5H5I1gBJJ2Pup83BfKyj1rCOYJlsX16ueY";
-  const SHEET_NAME = "KHO SACH";
-
   const searchInput = document.getElementById("searchInput");
   const bookGrid = document.getElementById("bookGrid");
   const modal = document.getElementById("bookModal");
   const closeBtn = document.getElementById("closeBtn");
 
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}`;
+  let allBooks = [];
 
-  let allRows = [];
+  // Gọi API lấy dữ liệu kho sách đầy đủ
+  async function loadBooks() {
+    try {
+      const response = await fetch(API_WRITE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "get_inventory" })
+      });
+      
+      const result = await response.json();
+      
+      if(result.status === "success") {
+         allBooks = result.data.map(row => {
+            return {
+               code: row.code,
+               title: row.name,
+               category: row.category,
+               total: parseInt(row.total) || 0,
+               borrowed: parseInt(row.borrowed) || 0,
+               remain: parseInt(row.conLai) || 0,
+               // Ưu tiên link ảnh từ Sheet, nếu không có thì dùng Fallback
+               imageUrl: row.imageUrl ? row.imageUrl : (bookImagesFallback[row.name] || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop")
+            };
+         });
+         
+         // Lọc bỏ sách trống
+         allBooks = allBooks.filter(b => b.title.trim() !== "");
+         renderGrid(allBooks);
+      } else {
+         bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red;">Lỗi tải dữ liệu: ${result.message}</p>`;
+      }
+    } catch (error) {
+      bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: red;">Lỗi kết nối. Vui lòng kiểm tra lại liên kết API.</p>`;
+      console.error(error);
+    }
+  }
 
-  fetch(url)
-    .then(res => res.text())
-    .then(text => {
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      allRows = json.table.rows;
-      renderGrid(allRows);
-    });
-
-  function renderGrid(rows) {
+  function renderGrid(books) {
     bookGrid.innerHTML = "";
     
-    if(rows.length === 0){
+    if(books.length === 0){
        bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: #64748b;">Không tìm thấy cuốn sách nào.</p>`;
        return;
     }
 
-    rows.forEach((row, index) => {
-      const code = row.c[0]?.v || "";
-      const title = row.c[1]?.v || "";
-      const category = row.c[2]?.v || "";
-      const remain = row.c[5]?.v || 0;
-
-      const isLowStock = (typeof remain === "number" && remain < 10);
+    books.forEach((book, index) => {
+      const isLowStock = book.remain < 10;
       const remainClass = isLowStock ? "badge-danger" : "badge-success";
-      
-      const imgUrl = bookImages[title] || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop";
 
       const card = document.createElement("div");
       card.className = "book-card";
-      
       card.style.animationDelay = `${index * 0.05}s`;
       
-      card.onclick = () => openModal(row);
+      card.onclick = () => openModal(book);
 
       card.innerHTML = `
         <div class="card-img-wrapper">
-          <img src="${imgUrl}" alt="${title}">
-          <span class="category-badge">${category}</span>
+          <img src="${book.imageUrl}" alt="${book.title}" onerror="this.src='https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop'">
+          <span class="category-badge">${book.category}</span>
         </div>
         <div class="card-info">
-          <h3>${title}</h3>
-          <p class="book-code">Mã: ${code}</p>
+          <h3>${book.title}</h3>
+          <p class="book-code">Mã: ${book.code}</p>
           <div class="card-bottom">
-            <span class="remain-badge ${remainClass}">Còn lại: ${remain}</span>
+            <span class="remain-badge ${remainClass}">Còn lại: ${book.remain}</span>
           </div>
         </div>
       `;
@@ -506,28 +527,24 @@
   searchInput.addEventListener("input", () => {
     const keyword = searchInput.value.trim().toLowerCase();
     if (!keyword) {
-      renderGrid(allRows);
+      renderGrid(allBooks);
       return;
     }
-    const filtered = allRows.filter(r =>
-      (r.c[1]?.v || "").toLowerCase().includes(keyword)
+    const filtered = allBooks.filter(b =>
+      b.title.toLowerCase().includes(keyword) || b.code.toLowerCase().includes(keyword)
     );
     renderGrid(filtered);
   });
 
   // ===== MODAL =====
-  function openModal(row) {
-    const title = row.c[1]?.v || "";
-
-    document.getElementById("modalCode").textContent = row.c[0]?.v || "";
-    document.getElementById("modalTitle").textContent = title;
-    document.getElementById("modalCategory").textContent = row.c[2]?.v || "";
-    document.getElementById("modalTotal").textContent = row.c[3]?.v || "";
-    document.getElementById("modalBorrowed").textContent = row.c[4]?.v || "";
-    document.getElementById("modalRemain").textContent = row.c[5]?.v || "";
-
-    const img = bookImages[title];
-    document.getElementById("modalImage").src = img ? img : "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop";
+  function openModal(book) {
+    document.getElementById("modalCode").textContent = book.code;
+    document.getElementById("modalTitle").textContent = book.title;
+    document.getElementById("modalCategory").textContent = book.category;
+    document.getElementById("modalTotal").textContent = book.total;
+    document.getElementById("modalBorrowed").textContent = book.borrowed;
+    document.getElementById("modalRemain").textContent = book.remain;
+    document.getElementById("modalImage").src = book.imageUrl;
 
     modal.classList.add("active");
   }
@@ -540,6 +557,8 @@
   window.onclick = e => { if (e.target === modal) closeModal(); };
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
+  // Khởi chạy khi load trang
+  loadBooks();
 </script>
 
 </body>
