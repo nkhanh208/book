@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Danh sách sách thư viện - Premium Glassmorphism</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET ===== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, sans-serif;
+      min-height: 100vh;
+      color: #1e293b;
+      background-color: #f5f5f7;
+      /* Đốm mờ làm nền để Glassmorphism bắt sáng */
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 122, 255, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(255, 45, 85, 0.05), transparent 25%);
+      /* Giảm padding body cho Google Sites */
+      padding: 20px 10px;
+    }
+
+    /* ===== HEADER & SEARCH BAR ===== */
+    .header-glass {
+      width: 100%;
+      max-width: 1200px;
+      /* Giảm margin và padding */
+      margin: 0 auto 24px;
+      padding: 16px 20px;
+      border-radius: 20px;
+      
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1);
+      
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      animation: fadeUp 0.6s ease-out forwards;
+    }
+
+    h2 {
+      /* Thu nhỏ font chữ tiêu đề */
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .container-input {
+      position: relative;
+      width: 100%;
+      max-width: 300px; /* Thu nhỏ thanh search */
+    }
+
+    .input {
+      width: 100%;
+      padding: 10px 16px 10px 38px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      color: #1d1d1f;
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .input:focus {
+      box-shadow: 0 4px 15px rgba(79, 108, 255, 0.15);
+      border-color: #4f6cff;
+    }
+
+    .container-input svg {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translate(0, -50%);
+      fill: #64748b;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ===== BOOK GRID & CARDS (KHUNG VIỀN TỪNG PHẦN) ===== */
+    .book-grid {
+      display: grid;
+      /* Ép các thẻ nhỏ lại (min 200px thay vì 280px) */
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px; /* Giảm gap */
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .book-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px; /* Giảm bo góc */
+      
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+      
+      cursor: pointer;
+      overflow: hidden;
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+      animation: fadeUp 0.6s ease-out forwards;
+    }
+
+    /* Hiệu ứng vệt sáng quét ngang */
+    .book-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.9) 50%,
+        rgba(255,255,255,0) 100%
+      );
+      transform: skewX(-25deg);
+      transition: .5s;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .book-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,1);
+    }
+
+    .book-card:hover::after {
+      left: 200%;
+    }
+
+    /* Thành phần bên trong Card */
+    .card-img-wrapper {
+      width: 100%;
+      height: 150px; /* Giảm chiều cao ảnh bìa */
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px 18px 0 0;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .card-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+
+    .book-card:hover .card-img-wrapper img {
+      transform: scale(1.08);
+    }
+
+    .category-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .card-info {
+      padding: 16px; /* Giảm padding */
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      z-index: 2;
+    }
+
+    .card-info h3 {
+      font-size: 15px; /* Chữ nhỏ hơn */
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .book-code {
+      font-size: 12px; /* Chữ mã sách nhỏ hơn */
+      color: #64748b;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    .card-bottom {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    .remain-badge {
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px; /* Badge chữ nhỏ hơn */
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444; 
+    }
+
+    /* ===== POPUP CHI TIẾT SÁCH MỚI ===== */
+    .popup {
+      opacity: 0;
+      visibility: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.35);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      transition: .3s ease;
+    }
+
+    .popup.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup-content {
+      width: 90%;
+      max-width: 600px; /* Thu nhỏ bề ngang popup */
+      padding: 24px; /* Thu nhỏ padding popup */
+      border-radius: 24px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.8);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,1);
+      position: relative;
+      transform: translateY(30px) scale(.95);
+      transition: .4s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .popup.active .popup-content {
+      transform: translateY(0) scale(1);
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      color: #334155;
+      cursor: pointer;
+      transition: .25s;
+    }
+
+    .close-btn:hover {
+      background: #ef4444; 
+      color: white;
+      transform: rotate(90deg) scale(1.1);
+    }
+
+    .modal-body {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .modal-body img {
+      width: 140px; /* Giảm size ảnh trong popup */
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    .modal-info {
+      flex: 1;
+    }
+
+    .modal-info h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #0f172a;
+      font-size: 20px; /* Tiêu đề popup nhỏ hơn */
+      font-weight: 700;
+      line-height: 1.3;
+      padding-right: 20px;
+    }
+
+    .modal-info p {
+      margin: 8px 0;
+      font-size: 14px;
+      color: #334155;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.6);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .modal-info p strong {
+      color: #0f172a;
+    }
+
+    .site-footer {
+      margin-top: 30px;
+      padding: 16px 0;
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      width: 100%;
+    }
+    .site-footer span { color: #0f172a; font-weight: 600; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .header-glass {
+        flex-direction: column;
+        text-align: center;
+        border-radius: 16px;
+        padding: 16px;
+      }
+      .book-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Nhỏ hơn trên đt */
+      }
+      .modal-body {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .modal-info p {
+        justify-content: space-between;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header-glass">
+  <h2>📚 Thư Viện Sách</h2>
+  <div class="search-box">
+    <div class="container-input">
+      <input type="text" placeholder="Tìm tên sách..." name="text" class="input" id="searchInput">
+      <svg fill="#000000" viewBox="0 0 1920 1920" xmlns="http://www.w3.org/2000/svg">
+        <path d="M790.588 1468.235c-373.722 0-677.647-303.924-677.647-677.647 0-373.722 303.925-677.647 677.647-677.647 373.723 0 677.647 303.925 677.647 677.647 0 373.723-303.924 677.647-677.647 677.647Zm596.781-160.715c120.396-138.692 193.807-319.285 193.807-516.932C1581.176 354.748 1226.428 0 790.588 0S0 354.748 0 790.588s354.748 790.588 790.588 790.588c197.647 0 378.24-73.411 516.932-193.807l516.028 516.142 79.963-79.963-516.142-516.028Z" fill-rule="evenodd"></path>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div id="bookGrid" class="book-grid"></div>
+
+<!-- ===== POPUP CHI TIẾT SÁCH ===== -->
+<div id="bookModal" class="popup">
+  <div class="popup-content">
+    <div class="close-btn" id="closeBtn">✕</div>
+
+    <div class="modal-body">
+      <img id="modalImage" src="" alt="Ảnh sách">
+
+      <div class="modal-info">
+        <h3 id="modalTitle"></h3>
+        <p><strong>Mã sách:</strong> <span id="modalCode"></span></p>
+        <p><strong>Phân loại:</strong> <span id="modalCategory"></span></p>
+        <p><strong>Tổng số lượng:</strong> <span id="modalTotal"></span></p>
+        <p><strong>Đang cho mượn:</strong> <span id="modalBorrowed"></span></p>
+        <p><strong>Còn lại trong kho:</strong> <span id="modalRemain"></span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <p>Powered by <span>BCK Team</span></p>
+</footer>
+
+<script>
+  const bookImages = {
+    "Đắc Nhân Tâm (Dale Carnegie)": "https://ebookvie.com/wp-content/uploads/2024/02/Dac-Nhan-Tam-Dale-Carnegie-ebookvie.png",
+    "Nhà Giả Kim (Paulo Coelho)": "https://th.bing.com/th/id/OIP._yzetDs3gher9vBV-Ax_iAHaL0?w=115&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1",
+    "Tuổi trẻ đáng giá bao nhiêu?": "https://i.pinimg.com/736x/37/8c/df/378cdf8dbf034e3e0e7b51edad4a7d3f.jpg",
+    "Cà phê cùng Tony": "https://nhungcuonsachhay.com/wp-content/uploads/2021/10/Ca-Phe-Cung-Tony-Tony-Buoi-Sang.jpg",
+    "Mắt Biếc (Nguyễn Nhật Ánh)": "https://th.bing.com/th/id/OIP.MQCPs6JTGo36srhT4IzBVwAAAA?w=174&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1",
+    "Tôi thấy hoa vàng trên cỏ xanh": "https://th.bing.com/th/id/OIP.h4Wo8pCfo5SyZ1HeK95uogHaHa?w=178&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1",
+    "Harry Potter và Hòn đá phù thủy": "https://cungdocsach.vn/wp-content/uploads/2019/10/Harry-potter-v%C3%A0-h%C3%B2n-%C4%91%C3%A1-ph%C3%B9-th%E1%BB%A7y.gif",
+    "Dế Mèn phiêu lưu ký": "https://th.bing.com/th/id/OIP.yUnYiZCTzCIjVgo11MiTwgHaHa?w=185&h=185&c=7&r=0&o=7&cb=ucfimg2&dpr=1.3&pid=1.7&rm=3&ucfimg=1"
+  };
+
+  const SHEET_ID = "1ri9ZDmFpX5H5I1gBJJ2Pup83BfKyj1rCOYJlsX16ueY";
+  const SHEET_NAME = "KHO SACH";
+
+  const searchInput = document.getElementById("searchInput");
+  const bookGrid = document.getElementById("bookGrid");
+  const modal = document.getElementById("bookModal");
+  const closeBtn = document.getElementById("closeBtn");
+
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}`;
+
+  let allRows = [];
+
+  fetch(url)
+    .then(res => res.text())
+    .then(text => {
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      allRows = json.table.rows;
+      renderGrid(allRows);
+    });
+
+  function renderGrid(rows) {
+    bookGrid.innerHTML = "";
+    
+    if(rows.length === 0){
+       bookGrid.innerHTML = `<p style="text-align:center; width: 100%; color: #64748b;">Không tìm thấy cuốn sách nào.</p>`;
+       return;
+    }
+
+    rows.forEach((row, index) => {
+      const code = row.c[0]?.v || "";
+      const title = row.c[1]?.v || "";
+      const category = row.c[2]?.v || "";
+      const remain = row.c[5]?.v || 0;
+
+      const isLowStock = (typeof remain === "number" && remain < 10);
+      const remainClass = isLowStock ? "badge-danger" : "badge-success";
+      
+      const imgUrl = bookImages[title] || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop";
+
+      const card = document.createElement("div");
+      card.className = "book-card";
+      
+      card.style.animationDelay = `${index * 0.05}s`;
+      
+      card.onclick = () => openModal(row);
+
+      card.innerHTML = `
+        <div class="card-img-wrapper">
+          <img src="${imgUrl}" alt="${title}">
+          <span class="category-badge">${category}</span>
+        </div>
+        <div class="card-info">
+          <h3>${title}</h3>
+          <p class="book-code">Mã: ${code}</p>
+          <div class="card-bottom">
+            <span class="remain-badge ${remainClass}">Còn lại: ${remain}</span>
+          </div>
+        </div>
+      `;
+      bookGrid.appendChild(card);
+    });
+  }
+
+  // ===== SEARCH =====
+  searchInput.addEventListener("input", () => {
+    const keyword = searchInput.value.trim().toLowerCase();
+    if (!keyword) {
+      renderGrid(allRows);
+      return;
+    }
+    const filtered = allRows.filter(r =>
+      (r.c[1]?.v || "").toLowerCase().includes(keyword)
+    );
+    renderGrid(filtered);
+  });
+
+  // ===== MODAL =====
+  function openModal(row) {
+    const title = row.c[1]?.v || "";
+
+    document.getElementById("modalCode").textContent = row.c[0]?.v || "";
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalCategory").textContent = row.c[2]?.v || "";
+    document.getElementById("modalTotal").textContent = row.c[3]?.v || "";
+    document.getElementById("modalBorrowed").textContent = row.c[4]?.v || "";
+    document.getElementById("modalRemain").textContent = row.c[5]?.v || "";
+
+    const img = bookImages[title];
+    document.getElementById("modalImage").src = img ? img : "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop";
+
+    modal.classList.add("active");
+  }
+
+  function closeModal() {
+    modal.classList.remove("active");
+  }
+
+  closeBtn.onclick = closeModal;
+  window.onclick = e => { if (e.target === modal) closeModal(); };
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+</script>
+
+</body>
+</html>
